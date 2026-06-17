@@ -1,0 +1,11 @@
+node_modules
+dist
+.git
+.cursor
+AppData
+playwright-report
+test-results
+coverage
+*.md
+firebase.json
+.firebaserc
