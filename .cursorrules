@@ -1,0 +1,209 @@
+# Aeon's End Tracker - Cursor Rules
+
+## Project Overview
+This is a cross-platform game tracker application for Aeon's End board game. The app tracks enemy stats (boss, powers, minions), turn progression, and stronghold/player stats.
+
+## Tech Stack
+- **Frontend**: React 18+ with TypeScript
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS
+- **State Management**: Zustand
+- **Mobile**: Capacitor (for Android/iOS)
+- **Testing**: Vitest (unit), Playwright (E2E)
+- **Language**: TypeScript (strict mode)
+
+## Core Principles
+
+### 1. Test-Driven Development (TDD)
+- **ALWAYS** write tests before implementation
+- Unit tests for utilities and store logic
+- Component tests for UI components
+- E2E tests for user flows
+- Aim for >80% code coverage
+- Tests should be meaningful and test behavior, not implementation
+
+### 2. Code Quality
+- Use TypeScript strictly (no `any` unless absolutely necessary)
+- Prefer functional components with hooks
+- Keep components small and focused (single responsibility)
+- Extract reusable logic into custom hooks or utilities
+- Use meaningful variable and function names
+- Comment complex logic, but prefer self-documenting code
+
+### 3. State Management
+- Use Zustand for global state
+- Keep state normalized and flat when possible
+- All state mutations should go through store actions
+- Implement undo/redo for all state changes
+- State updates should be immutable
+
+### 4. User Experience
+- **Intuitiveness > Looks**: Functionality comes first
+- Mobile-first responsive design
+- Touch-friendly (minimum 44x44px touch targets)
+- Provide visual feedback for all interactions
+- Support both tap and long-press gestures
+- Smooth animations (use CSS transitions/animations or lightweight libraries)
+
+### 5. Theme & Styling
+- Fantasy/mage theme (Aeon's End aesthetic)
+- Dark theme as default (chalkboard/dark wood feel)
+- Use Tailwind utility classes
+- Custom colors defined in tailwind.config.js
+- Responsive breakpoints: mobile (< 768px), tablet (768-1024px), desktop (> 1024px)
+
+### 6. Cross-Platform Considerations
+- Design for web, Android, and iOS
+- Test on different screen sizes (phone, tablet, laptop)
+- Use Capacitor APIs for native features when needed
+- Ensure PWA capabilities (web app installable)
+- Handle touch and mouse events appropriately
+
+## File Organization
+
+### Components
+- One component per file
+- Co-locate component tests when possible
+- Use PascalCase for component files
+- Group related components in folders
+- Export components as named exports
+
+### Store
+- One store file per domain (enemy, turn, stronghold)
+- Or unified gameStore with clear separation
+- Types defined in separate types.ts or inline
+- Actions should be pure functions when possible
+
+### Utils
+- Pure functions only (no side effects)
+- Well-tested utilities
+- Document complex algorithms
+
+### Hooks
+- Custom hooks start with `use`
+- Extract component logic into hooks
+- Hooks should be reusable
+
+## Testing Guidelines
+
+### Unit Tests
+- Test business logic thoroughly
+- Mock external dependencies
+- Test edge cases and error conditions
+- Use descriptive test names: `should [expected behavior] when [condition]`
+
+### Component Tests
+- Test user interactions (clicks, inputs)
+- Test conditional rendering
+- Test props and state changes
+- Use React Testing Library queries
+- Avoid testing implementation details
+
+### E2E Tests
+- Test complete user flows
+- Test across different viewport sizes
+- Test on different browsers (Chrome, Firefox, Safari)
+- Test critical paths: turn progression, enemy management, undo/redo
+- Keep tests independent and idempotent
+
+## Code Style
+
+### TypeScript
+```typescript
+// Prefer interfaces for object shapes
+interface GameState {
+  enemy: EnemyState;
+  turn: TurnState;
+  stronghold: StrongholdState;
+}
+
+// Use type aliases for unions/primitives
+type PlayerType = 'P1' | 'P2' | 'Nemesis';
+
+// Use const assertions for literals
+const PLAYER_TYPES = ['P1', 'P2', 'Nemesis'] as const;
+```
+
+### React Components
+```typescript
+// Functional components with props interface
+interface ComponentProps {
+  value: number;
+  onChange: (value: number) => void;
+}
+
+export function Component({ value, onChange }: ComponentProps) {
+  // Component logic
+}
+```
+
+### Naming Conventions
+- Components: PascalCase (`PowerCard.tsx`)
+- Functions/variables: camelCase (`incrementTimer`)
+- Constants: UPPER_SNAKE_CASE (`MAX_HISTORY_SIZE`)
+- Types/Interfaces: PascalCase (`GameState`)
+- Files: match export (component files = PascalCase, utils = camelCase)
+
+## Git Workflow
+- Write clear, descriptive commit messages
+- One logical change per commit
+- Test before committing
+- Keep commits focused and atomic
+
+## Performance
+- Avoid unnecessary re-renders (use React.memo when appropriate)
+- Lazy load components if needed
+- Optimize images and assets
+- Keep bundle size reasonable
+
+## Accessibility
+- Use semantic HTML
+- Provide ARIA labels where needed
+- Ensure keyboard navigation works
+- Maintain sufficient color contrast
+- Test with screen readers when possible
+
+## Documentation
+- README.md with setup and run instructions
+- Code comments for complex logic
+- Type definitions serve as documentation
+- Update ARCHITECTURE.md when making significant changes
+
+## Common Patterns
+
+### Undo/Redo Pattern
+```typescript
+// All state mutations should support undo/redo
+function updateState(newState: Partial<GameState>) {
+  saveStateToHistory();
+  setState(newState);
+}
+```
+
+### Number Input Pattern
+- Single tap: increment/decrement by 1
+- Long press: open input modal with options
+- Provide quick presets (e.g., -5, -10, +5, +10)
+- Input box for custom values
+
+### Animation Pattern
+- Use CSS animations for simple animations
+- Use Framer Motion only if needed for complex animations
+- Keep animations subtle and performant
+- Prefer transform and opacity for animations (GPU accelerated)
+
+## Dependencies
+- Keep dependencies minimal and well-maintained
+- Prefer smaller, focused libraries
+- Avoid large frameworks unless necessary
+- Regularly update dependencies (security patches)
+
+## When Adding New Features
+1. Write tests first (TDD)
+2. Update types/interfaces
+3. Implement feature
+4. Add E2E tests if it's a user-facing feature
+5. Update documentation if needed
+6. Ensure undo/redo works
+7. Test on multiple devices/viewports
+

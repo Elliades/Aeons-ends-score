@@ -1,0 +1,7 @@
+services:
+  web:
+    build: .
+    image: aeons-end-tracker:latest
+    restart: unless-stopped
+    ports:
+      - "3082:80"
