@@ -1,0 +1,14 @@
+{
+  "name": "wake-quartermaster",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Wake-on-LAN webapp for Quatermaster PC",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "wake_on_lan": "^1.0.0"
+  }
+}
