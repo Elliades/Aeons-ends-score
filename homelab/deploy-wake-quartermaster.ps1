@@ -27,6 +27,8 @@ Write-Host "=== 1. Copy wake-quartermaster to apps ===" -ForegroundColor Green
 & ssh @sshOpts $RemoteHost "if exist `"$RemoteDir`" rmdir /s /q `"$RemoteDir`" & mkdir `"$RemoteDir`"" | Out-Null
 & scp @sshOpts -r "$localApp\*" "${RemoteHost}:$RemoteDir/"
 & scp @sshOpts "$localApp\.env.example" "$localApp\.dockerignore" "${RemoteHost}:$RemoteDir/"
+& scp @sshOpts "$localApp\send-wol.ps1" "${RemoteHost}:C:\paas\send-wol.ps1"
+& scp @sshOpts "$localApp\send-wol-service.ps1" "${RemoteHost}:C:\paas\send-wol-service.ps1"
 
 Write-Host "=== 2. docker compose build and up ===" -ForegroundColor Green
 $wslDir = '/mnt/c/paas/wake-quartermaster'
@@ -125,6 +127,20 @@ Set-Content -Path $proxyLocal -Value $proxyCmd -Encoding ascii
 & scp @sshOpts $proxyLocal "${RemoteHost}:C:\paas\tmp\portproxy-wqm.cmd"
 & ssh @sshOpts $RemoteHost "C:\paas\tmp\portproxy-wqm.cmd"
 Remove-Item $proxyLocal -Force
+
+Write-Host "=== 5. Windows WOL helper on apps (port 3088) ===" -ForegroundColor Green
+$wolSvcCmd = @"
+@echo off
+schtasks /Delete /TN "WOL-Helper-Apps" /F >nul 2>&1
+schtasks /Create /TN "WOL-Helper-Apps" /TR "powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\paas\send-wol-service.ps1" /SC ONSTART /RU SYSTEM /RL HIGHEST /F
+netsh advfirewall firewall add rule name=WOL-Helper-3088 dir=in action=allow protocol=TCP localport=3088 profile=any
+schtasks /Run /TN "WOL-Helper-Apps"
+"@
+$wolSvcLocal = Join-Path $env:TEMP 'install-wol-helper-apps.cmd'
+Set-Content -Path $wolSvcLocal -Value $wolSvcCmd -Encoding ascii
+& scp @sshOpts $wolSvcLocal "${RemoteHost}:C:\paas\tmp\install-wol-helper-apps.cmd"
+& ssh @sshOpts $RemoteHost "C:\paas\tmp\install-wol-helper-apps.cmd"
+Remove-Item $wolSvcLocal -Force
 
 Write-Host ""
 Write-Host "Done." -ForegroundColor Green
