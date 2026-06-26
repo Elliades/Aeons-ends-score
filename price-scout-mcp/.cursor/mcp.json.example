@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "price-scout": {
-      "command": "node",
-      "args": ["C:/Users/Quatermaster/price-scout-mcp/dist/index.js"],
-      "env": {}
-    }
-  }
-}
