@@ -27,7 +27,76 @@
   }
 
   .card {
-    @apply bg-mage-dark border border-mage-purple/30 rounded-lg p-4 shadow-lg;
+    @apply bg-mage-purple-dark/90 backdrop-blur-sm border-2 border-mage-gold/40 rounded-lg p-4 shadow-2xl;
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), 0 0 40px rgba(245, 158, 11, 0.1);
   }
+
+  .panel-dark {
+    @apply bg-mage-purple-dark/90 backdrop-blur-sm border-2 border-mage-gold/40 rounded-lg shadow-2xl;
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), 0 0 40px rgba(245, 158, 11, 0.1);
+  }
+}
+
+@keyframes capacity-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(139, 92, 246, 0);
+  }
+}
+
+@keyframes charge-empty {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+.capacity-button {
+  animation: capacity-pulse 2s ease-in-out infinite;
+}
+
+.charge-emptying {
+  animation: charge-empty 0.5s ease-out forwards;
+}
+
+/* Hide number input spinner */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Prevent hover states from sticking on touch devices */
+@media (hover: none) {
+  button:hover,
+  button:focus {
+    background-color: inherit !important;
+  }
+  
+  button:active {
+    opacity: 0.8;
+  }
+}
+
+/* Add touch-action to prevent double tap zoom and improve touch responsiveness */
+button {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
