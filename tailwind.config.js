@@ -12,9 +12,12 @@ export default {
         'mage-darker': '#0f0d14',
         'mage-purple': '#6b46c1',
         'mage-purple-light': '#8b5cf6',
+        'mage-purple-dark': '#4c1d95', // Darker purple for panels
         'mage-blue': '#3b82f6',
         'mage-cyan': '#06b6d4',
         'mage-gold': '#f59e0b',
+        'mage-gold-light': '#fbbf24',
+        'mage-gold-dark': '#d97706',
         'mage-red': '#ef4444',
         'mage-green': '#10b981',
         'chalk': '#e5e7eb',

@@ -13,15 +13,21 @@ export function Boss() {
     updateBoss(Math.max(0, boss - 1));
   };
 
+  const handleUpdate = (newValue: number) => {
+    updateBoss(newValue);
+  };
+
   return (
-    <div className="flex items-center justify-between mb-4">
-      <div className="text-2xl font-bold text-mage-red">BOSS</div>
+    <div className="flex items-center justify-center mb-4">
       <NumberInput
         value={boss}
         onIncrement={handleIncrement}
         onDecrement={handleDecrement}
+        onUpdate={handleUpdate}
         ariaLabel="boss"
         showLabel={false}
+        size="5xl"
+        color="white"
       />
     </div>
   );

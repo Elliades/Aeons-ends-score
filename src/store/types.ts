@@ -1,4 +1,4 @@
-export type PlayerType = 'P1' | 'P2' | 'Nemesis';
+export type PlayerType = 'P1' | 'P2' | 'P3' | 'P4' | 'Joker' | 'Nemesis' | '1-2' | '3-4';
 
 export interface Power {
   id: string;
@@ -17,7 +17,7 @@ export interface Player {
   id: string;
   name: string;
   life: number;
-  charge: number;
+  chargeStacks: boolean[]; // Array of charge slots, true = filled, false = empty
 }
 
 export type Card = PlayerType;
@@ -26,6 +26,7 @@ export interface EnemyState {
   boss: number;
   powers: Power[];
   minions: Minion[];
+  autoDecrementPowers: boolean; // Auto-decrement powers when Nemesis card is drawn
 }
 
 export interface TurnState {
@@ -35,6 +36,10 @@ export interface TurnState {
   drawPile: Card[];
   playedCards: Card[];
   playerCount: number;
+  customLabels?: {
+    '1-2'?: string;
+    '3-4'?: string;
+  };
 }
 
 export interface StrongholdState {
