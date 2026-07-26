@@ -3,6 +3,9 @@ services:
     build: .
     image: wake-quartermaster:latest
     restart: unless-stopped
+    # Prefer host networking so UDP WOL broadcasts reach the LAN.
+    # If an older unmanaged container already owns :3087, deploy script
+    # hot-patches that instance instead of fighting it.
     network_mode: host
     environment:
       PORT: "3087"
@@ -12,4 +15,5 @@ services:
       WOL_HOST_NAME: "Quatermaster"
       WOL_PACKET_COUNT: "5"
       WINDOWS_WOL_URL: "http://172.22.48.1:3088/wake"
+      SLEEP_AGENT_URL: "http://192.168.1.158:3089"
       WAKE_TOKEN: "${WAKE_TOKEN:-}"

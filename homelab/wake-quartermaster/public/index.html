@@ -3,18 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Réveiller Quatermaster</title>
+  <title>Power Quatermaster</title>
   <style>
     :root {
       color-scheme: dark;
       --bg: #0f1419;
       --card: #1a2332;
-      --accent: #3b82f6;
-      --accent-hover: #2563eb;
+      --wake: #3b82f6;
+      --wake-hover: #2563eb;
+      --sleep: #0d9488;
+      --sleep-hover: #0f766e;
       --text: #e2e8f0;
       --muted: #94a3b8;
       --success: #22c55e;
       --error: #ef4444;
+      --warn: #f59e0b;
     }
     * { box-sizing: border-box; }
     body {
@@ -28,7 +31,7 @@
       padding: 1rem;
     }
     .card {
-      width: min(420px, 100%);
+      width: min(440px, 100%);
       background: var(--card);
       border: 1px solid #334155;
       border-radius: 1rem;
@@ -37,20 +40,46 @@
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
     }
     h1 { margin: 0 0 0.5rem; font-size: 1.5rem; }
-    p { color: var(--muted); margin: 0 0 1.5rem; line-height: 1.5; }
+    p { color: var(--muted); margin: 0 0 1.25rem; line-height: 1.5; }
+    .state {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      margin-bottom: 1.25rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: var(--muted);
+    }
+    .state .dot {
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+    .state.awake .dot { background: var(--success); }
+    .state.asleep .dot { background: var(--warn); }
+    .actions {
+      display: grid;
+      gap: 0.75rem;
+    }
     button {
       width: 100%;
       border: none;
       border-radius: 0.75rem;
       padding: 1rem 1.25rem;
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       font-weight: 600;
       cursor: pointer;
-      background: var(--accent);
       color: white;
       transition: background 0.15s, transform 0.1s;
     }
-    button:hover:not(:disabled) { background: var(--accent-hover); }
+    button#wake { background: var(--wake); }
+    button#wake:hover:not(:disabled) { background: var(--wake-hover); }
+    button#sleep { background: var(--sleep); }
+    button#sleep:hover:not(:disabled) { background: var(--sleep-hover); }
     button:active:not(:disabled) { transform: scale(0.98); }
     button:disabled { opacity: 0.6; cursor: wait; }
     #token {
@@ -70,58 +99,103 @@
     }
     .ok { color: var(--success); }
     .err { color: var(--error); }
+    .hint {
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
   </style>
 </head>
 <body>
   <main class="card">
-    <h1>⚡ Quatermaster</h1>
-    <p>Envoie un paquet Wake-on-LAN pour démarrer le PC depuis le réseau local.</p>
+    <h1>Quatermaster</h1>
+    <p>Réveil Wake-on-LAN depuis apps · Mise en veille via l’agent local.</p>
+    <div id="state" class="state" aria-live="polite">
+      <span class="dot" aria-hidden="true"></span>
+      <span id="stateText">État inconnu</span>
+    </div>
     <input id="token" type="password" placeholder="Token (si requis)" autocomplete="off" />
-    <button id="wake" type="button">Réveiller le PC</button>
+    <div class="actions">
+      <button id="wake" type="button">Réveiller le PC</button>
+      <button id="sleep" type="button">Mettre en veille</button>
+    </div>
     <div id="status" role="status" aria-live="polite"></div>
+    <p class="hint">
+      Si le réveil échoue : exécuter <code>setup-wol-quartermaster.ps1</code> en admin
+      et activer Wake-on-LAN / désactiver ErP dans le BIOS.
+    </p>
   </main>
   <script>
     const wakeBtn = document.getElementById('wake');
+    const sleepBtn = document.getElementById('sleep');
     const statusEl = document.getElementById('status');
     const tokenEl = document.getElementById('token');
+    const stateEl = document.getElementById('state');
+    const stateText = document.getElementById('stateText');
 
-    async function init() {
-      try {
-        const res = await fetch('/api/health');
-        const data = await res.json();
-        if (data.host) {
-          document.querySelector('h1').textContent = '⚡ ' + data.host;
-        }
-      } catch (_) {}
-    }
-
-    wakeBtn.addEventListener('click', async () => {
-      wakeBtn.disabled = true;
-      statusEl.textContent = 'Envoi du magic packet…';
-      statusEl.className = '';
-
+    function authHeaders() {
       const headers = { 'Content-Type': 'application/json' };
       const body = {};
       if (tokenEl.value) {
         headers['X-Wake-Token'] = tokenEl.value;
         body.token = tokenEl.value;
       }
+      return { headers, body };
+    }
 
+    async function refreshStatus() {
       try {
-        const res = await fetch('/api/wake', { method: 'POST', headers, body: JSON.stringify(body) });
+        const res = await fetch('/api/status');
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Échec');
-        statusEl.textContent = data.message || 'Paquet envoyé !';
+        if (data.host) {
+          document.querySelector('h1').textContent = data.host;
+        }
+        if (data.awake) {
+          stateEl.className = 'state awake';
+          stateText.textContent = 'Allumé / joignable';
+        } else {
+          stateEl.className = 'state asleep';
+          stateText.textContent = 'Éteint / en veille';
+        }
+      } catch (_) {
+        stateEl.className = 'state';
+        stateText.textContent = 'État inconnu';
+      }
+    }
+
+    async function postAction(path, pendingLabel, button) {
+      button.disabled = true;
+      wakeBtn.disabled = true;
+      sleepBtn.disabled = true;
+      statusEl.textContent = pendingLabel;
+      statusEl.className = '';
+
+      const { headers, body } = authHeaders();
+      try {
+        const res = await fetch(path, { method: 'POST', headers, body: JSON.stringify(body) });
+        const data = await res.json();
+        if (!res.ok) {
+          const tip = data.tip ? ` — ${data.tip}` : '';
+          throw new Error((data.error || 'Échec') + tip);
+        }
+        statusEl.textContent = data.message || 'OK';
         statusEl.className = 'ok';
+        setTimeout(refreshStatus, 1500);
       } catch (err) {
         statusEl.textContent = err.message || 'Erreur réseau';
         statusEl.className = 'err';
       } finally {
         wakeBtn.disabled = false;
+        sleepBtn.disabled = false;
       }
-    });
+    }
 
-    init();
+    wakeBtn.addEventListener('click', () => postAction('/api/wake', 'Envoi du magic packet…', wakeBtn));
+    sleepBtn.addEventListener('click', () => postAction('/api/sleep', 'Demande de mise en veille…', sleepBtn));
+
+    refreshStatus();
+    setInterval(refreshStatus, 10000);
   </script>
 </body>
 </html>
