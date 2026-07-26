@@ -3,7 +3,7 @@
   Deploy wake-quartermaster WOL webapp to apps (port 3087).
 
 .EXAMPLE
-  ./provision/deploy-wake-quartermaster.ps1
+  .\homelab\deploy-wake-quartermaster.ps1
 #>
 [CmdletBinding()]
 param(
@@ -17,10 +17,12 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $sshOpts = @('-o', 'BatchMode=yes', '-o', 'ConnectTimeout=20')
-$appsPs1 = Join-Path $PSScriptRoot 'apps.ps1'
-$localApp = (Resolve-Path (Join-Path $PSScriptRoot '..\templates\wake-quartermaster')).Path
+$appsRoot = if ($env:APPS_SERVER_ROOT) { $env:APPS_SERVER_ROOT } else { 'C:\workspace\Apps-server' }
+$appsPs1 = Join-Path $appsRoot 'provision\apps.ps1'
+$localApp = (Resolve-Path (Join-Path $PSScriptRoot 'wake-quartermaster')).Path
 $env:APPS_SSH_HOST = $RemoteHost
 
+if (-not (Test-Path $appsPs1)) { throw "Missing $appsPs1" }
 if (-not (Test-Path $localApp)) { throw "Missing $localApp" }
 
 Write-Host "=== 1. Copy wake-quartermaster to apps ===" -ForegroundColor Green
@@ -30,20 +32,58 @@ Write-Host "=== 1. Copy wake-quartermaster to apps ===" -ForegroundColor Green
 & scp @sshOpts "$localApp\send-wol.ps1" "${RemoteHost}:C:\paas\send-wol.ps1"
 & scp @sshOpts "$localApp\send-wol-service.ps1" "${RemoteHost}:C:\paas\send-wol-service.ps1"
 
-Write-Host "=== 2. docker compose build and up ===" -ForegroundColor Green
+Write-Host "=== 2. Hot-patch live container + compose fallback ===" -ForegroundColor Green
 $wslDir = '/mnt/c/paas/wake-quartermaster'
 $composeBash = @'
 set -euo pipefail
 cd '__WSL_DIR__'
 if [ ! -f .env ]; then touch .env; fi
-docker compose down 2>/dev/null || true
-docker compose build
-docker compose up -d
-sleep 3
+
+# Prefer patching whatever currently owns :PORT (Coolify/orphan host-network
+# instances are invisible to `docker ps` but visible to containerd).
+patched=0
+for cid in $(ctr -n moby containers ls -q 2>/dev/null || true); do
+  img=$(ctr -n moby containers info "$cid" 2>/dev/null | tr -d '\r' || true)
+  if echo "$img" | grep -q 'wake-quartermaster'; then
+    root="/var/lib/docker/rootfs/overlayfs/$cid"
+    if [ -f "$root/app/server.js" ]; then
+      echo "Patching live container $cid"
+      cp -f server.js "$root/app/server.js"
+      mkdir -p "$root/app/public"
+      cp -f public/index.html "$root/app/public/index.html"
+      cfg="/var/lib/docker/containers/$cid/config.v2.json"
+      if [ -f "$cfg" ]; then
+        python3 - <<PY
+import json
+from pathlib import Path
+p = Path("$cfg")
+data = json.loads(p.read_text())
+env = [e for e in data.get("Config", {}).get("Env", []) if not e.startswith("SLEEP_AGENT_URL=")]
+env.append("SLEEP_AGENT_URL=http://192.168.1.158:3089")
+data["Config"]["Env"] = env
+p.write_text(json.dumps(data))
+PY
+      fi
+      ctr -n moby tasks kill -s SIGKILL "$cid" 2>/dev/null || true
+      sleep 2
+      patched=1
+    fi
+  fi
+done
+
+if [ "$patched" -eq 0 ]; then
+  echo "No live wake-quartermaster container found; docker compose up"
+  docker compose build
+  docker compose up -d
+  sleep 3
+fi
+
 curl -sf http://127.0.0.1:__PORT__/api/health
+echo
+curl -sf http://127.0.0.1:__PORT__/api/health | grep -q 'agent-poll'
 '@ -replace '__WSL_DIR__', $wslDir -replace '__PORT__', $Port
 & $appsPs1 -Bash $composeBash
-if ($LASTEXITCODE -ne 0) { throw 'docker compose failed' }
+if ($LASTEXITCODE -ne 0) { throw 'deploy wake-quartermaster failed' }
 
 Write-Host "=== 3. Coolify service (API on apps) ===" -ForegroundColor Green
 $deploySh = @'

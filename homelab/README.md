@@ -1,6 +1,9 @@
-# Wake Quartermaster (WOL)
+# Power Quatermaster (Wake + Sleep)
 
-Webapp déployée sur **apps** pour réveiller le PC **Quatermaster** via Wake-on-LAN.
+Webapp déployée sur **apps** pour :
+
+1. **Réveiller** Quatermaster via Wake-on-LAN
+2. **Mettre en veille** Quatermaster via un agent local (port 3089)
 
 ## URLs
 
@@ -9,56 +12,83 @@ Webapp déployée sur **apps** pour réveiller le PC **Quatermaster** via Wake-o
 | LAN | http://apps:3087/ |
 | Tailscale | http://100.93.92.42:3087/ |
 | Health | http://apps:3087/api/health |
+| Status | http://apps:3087/api/status |
 
-## Configuration PC (une fois, en admin)
+## Architecture
 
-Le WOL de base est activé, mais il faut finaliser la config Windows **en administrateur** :
+```
+Phone/PC  →  apps:3087 (Docker)
+               ├─ POST /api/wake   → magic packets UDP (+ helper Windows :3088)
+               └─ POST /api/sleep  → Quatermaster:3089/sleep (pc-power-agent)
+```
+
+Wake ne peut **pas** fonctionner sans config Windows/BIOS. Sleep nécessite l’agent local allumé.
+
+## 1) Config Windows WOL (admin, une fois)
+
+Le WOL est partiellement activé, mais **`WoL / Arrêt vitesse réseau`** doit être
+`Pas vitesse ralentie` (sinon le réveil échoue souvent).
 
 ```powershell
 # PowerShell en tant qu'administrateur
 C:\Users\Quatermaster\homelab\setup-wol-quartermaster.ps1
 ```
 
-Ou enregistrer une tâche qui demandera UAC au prochain login :
+Ou enregistrer une tâche UAC au prochain login :
 
 ```powershell
 .\homelab\install-wol-setup-task.ps1
 ```
 
 Points importants :
-- **Réveil sur Magic Packet** : activé
-- **WoL / Arrêt vitesse réseau** : `Pas vitesse ralentie`
+- **Réveil sur Magic Packet** : Activé
+- **WoL / Arrêt vitesse réseau** : `Pas vitesse ralentie` (critique)
 - **Fast Startup** : désactivé par le script
-- **BIOS** : Wake-on-LAN activé, ErP/Eco désactivé si la carte s'éteint
+- **BIOS** : Wake-on-LAN activé, **ErP / Deep Sleep désactivé**
 
-## Cursor Agent worker au démarrage
+### BIOS (si wake reste mort)
+
+1. Activer **Wake-on-LAN** / **PCIE Wake** / **Power On By PCI-E**
+2. Désactiver **ErP** / **ERP Ready** / **Deep Sleep** / **Ultra Low Power**
+3. Garder l’alimentation standby NIC (+5VSB) après extinction
+
+## 2) Agent sommeil local (une fois)
 
 ```powershell
-.\homelab\install-cursor-agent-autostart.ps1
+.\homelab\install-pc-power-agent.ps1
+# Recommandé une fois en admin (règle firewall TCP 3089) :
+Start-Process powershell -Verb RunAs -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File C:\Users\Quatermaster\homelab\install-pc-power-agent.ps1'
 ```
 
-Crée un raccourci dans le dossier Démarrage Windows et lance `agent worker start` pour **My Machines**.
+Endpoints locaux :
 
-## Déploiement apps
+| Méthode | URL | Effet |
+|---------|-----|-------|
+| GET | http://192.168.1.158:3089/health | health |
+| GET | http://192.168.1.158:3089/status | état + NIC |
+| POST | http://192.168.1.158:3089/sleep | veille S3 |
+| POST | http://192.168.1.158:3089/hibernate | hibernation |
+
+## 3) Déploiement apps
 
 ```powershell
+# Source tracked in this repo → sync to Apps-server template, then deploy
+Copy-Item -Recurse -Force C:\Users\Quatermaster\homelab\wake-quartermaster\* C:\workspace\Apps-server\templates\wake-quartermaster\
+Copy-Item -Force C:\Users\Quatermaster\homelab\setup-wol-quartermaster.ps1 C:\workspace\Apps-server\provision\setup-wol-quartermaster.ps1
 C:\workspace\Apps-server\provision\deploy-wake-quartermaster.ps1
 ```
 
-Envoie les paquets WOL depuis :
-1. **Docker/WSL** (UDP broadcast + unicast, 30 paquets)
-2. **Windows apps** (helper sur port 3088, 30 paquets supplémentaires)
-
-## Cible WOL
+## Cible
 
 | Paramètre | Valeur |
 |-----------|--------|
 | MAC | `18:C0:4D:A9:10:3A` |
 | Broadcast | `192.168.1.255` |
 | IP LAN | `192.168.1.158` |
+| Sleep agent | `http://192.168.1.158:3089` |
 
 ## Test
 
-1. **Arrêt complet** (pas veille) : `shutdown /s /t 0`
-2. Ouvrir http://apps:3087/ et cliquer **Réveiller le PC**
-3. Attendre 30–60 secondes
+1. **Sleep** : ouvrir http://apps:3087/ → **Mettre en veille**
+2. **Wake** : http://apps:3087/ → **Réveiller le PC** (attendre 30–60 s)
+3. Si wake échoue après setup Windows : changer les options BIOS ci-dessus
