@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>apps-db-backup</title>
+  <style>
+    :root {
+      --bg0: #0f1410;
+      --bg1: #1a221c;
+      --ink: #e8f0e9;
+      --muted: #8fa394;
+      --ok: #3dba6e;
+      --warn: #d4a017;
+      --bad: #d4534b;
+      --line: #2a362c;
+      --accent: #6dbf8c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #243528 0%, transparent 55%),
+        linear-gradient(165deg, var(--bg0), var(--bg1) 60%, #121816);
+    }
+    main { max-width: 920px; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+    h1 {
+      font-family: "IBM Plex Serif", Georgia, serif;
+      font-weight: 600;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      letter-spacing: -0.02em;
+      margin: 0 0 0.35rem;
+    }
+    .lede { color: var(--muted); margin: 0 0 1.75rem; max-width: 40rem; line-height: 1.5; }
+    .row { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-bottom: 1.5rem; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.35rem 0.75rem; border: 1px solid var(--line);
+      background: rgba(0,0,0,0.25); font-size: 0.85rem;
+    }
+    .dot { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--muted); }
+    .dot.ok { background: var(--ok); }
+    .dot.degraded, .dot.warn { background: var(--warn); }
+    .dot.down, .dot.bad { background: var(--bad); }
+    button {
+      appearance: none; border: 1px solid var(--accent); background: transparent;
+      color: var(--ink); padding: 0.55rem 1rem; cursor: pointer; font: inherit;
+    }
+    button:hover { background: rgba(109, 191, 140, 0.12); }
+    button:disabled { opacity: 0.5; cursor: wait; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th, td { text-align: left; padding: 0.65rem 0.5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-weight: 500; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.82rem; }
+    section { margin-top: 2rem; }
+    h2 { font-size: 1.05rem; font-weight: 600; margin: 0 0 0.75rem; }
+    pre {
+      background: rgba(0,0,0,0.35); border: 1px solid var(--line);
+      padding: 0.85rem; overflow: auto; font-size: 0.78rem; line-height: 1.45;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>apps-db-backup</h1>
+    <p class="lede">Sauvegardes quotidiennes des BDD du mini-serveur <span class="mono">apps</span> vers le NAS (Volume_3).</p>
+    <div class="row">
+      <span class="pill"><span class="dot" id="statusDot"></span> <span id="statusText">…</span></span>
+      <span class="pill mono" id="lastRun">last run —</span>
+      <button id="runBtn" type="button">Lancer maintenant</button>
+    </div>
+
+    <section>
+      <h2>Cibles</h2>
+      <table>
+        <thead>
+          <tr><th>Id</th><th>État</th><th>Fichier</th><th>Taille</th><th>Fin</th></tr>
+        </thead>
+        <tbody id="targetsBody"></tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Checks</h2>
+      <pre id="checks">…</pre>
+    </section>
+  </main>
+  <script>
+    const fmtBytes = (n) => {
+      if (n == null) return '—';
+      const u = ['B','KB','MB','GB'];
+      let i = 0; let v = Number(n);
+      while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+      return `${v.toFixed(i ? 1 : 0)} ${u[i]}`;
+    };
+
+    async function refresh() {
+      const res = await fetch('/api/status');
+      const data = await res.json();
+      const st = data.status || 'unknown';
+      document.getElementById('statusDot').className = 'dot ' + st;
+      document.getElementById('statusText').textContent = st;
+      const lr = data.lastRun;
+      document.getElementById('lastRun').textContent = lr
+        ? `last run ${lr.runId} · ok=${lr.ok} fail=${lr.failed}`
+        : 'last run — none yet';
+      document.getElementById('checks').textContent = JSON.stringify(data.checks, null, 2);
+      const body = document.getElementById('targetsBody');
+      body.innerHTML = '';
+      (data.targets || []).forEach((t) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="mono">${t.id}</td>
+          <td><span class="dot ${t.ok ? 'ok' : 'bad'}"></span> ${t.ok ? 'ok' : 'fail'} <span class="mono">${t.detail || ''}</span></td>
+          <td class="mono">${t.file || '—'}</td>
+          <td>${fmtBytes(t.bytes)}</td>
+          <td class="mono">${t.finishedAt || '—'}</td>`;
+        body.appendChild(tr);
+      });
+      document.getElementById('runBtn').disabled = !!data.backupRunning;
+    }
+
+    document.getElementById('runBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('runBtn');
+      btn.disabled = true;
+      await fetch('/api/backup', { method: 'POST' });
+      setTimeout(refresh, 1500);
+      const poll = setInterval(async () => {
+        await refresh();
+        const s = await fetch('/api/status').then((r) => r.json());
+        if (!s.backupRunning) clearInterval(poll);
+      }, 3000);
+    });
+
+    refresh();
+    setInterval(refresh, 15000);
+  </script>
+</body>
+</html>

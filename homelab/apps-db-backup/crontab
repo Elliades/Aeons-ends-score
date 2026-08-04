@@ -1,0 +1,2 @@
+# Daily full backup at 03:15 Europe/Paris (TZ set in container)
+15 3 * * * /app/scripts/backup-all.sh

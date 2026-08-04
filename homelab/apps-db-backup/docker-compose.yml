@@ -1,0 +1,46 @@
+services:
+  apps-db-backup:
+    build: .
+    image: apps-db-backup:latest
+    container_name: apps-db-backup
+    restart: unless-stopped
+    ports:
+      - "3096:3096"
+    environment:
+      PORT: "3096"
+      BACKUP_ROOT: /data/backups
+      STATUS_DIR: /data/status
+      TARGETS_FILE: /app/targets.yaml
+      NAS_HOST: ${NAS_HOST:-192.168.1.189}
+      NAS_PORT: ${NAS_PORT:-2222}
+      NAS_USER: ${NAS_USER:-admin}
+      NAS_REMOTE_ROOT: ${NAS_REMOTE_ROOT:-/mnt/HD/HD_c2/apps-backups}
+      NAS_SSH_KEY: /run/secrets/nas_ssh_key
+      NAS_UPLOAD: ${NAS_UPLOAD:-1}
+      TZ: Europe/Paris
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - apps-db-backup-data:/data/backups
+      - apps-db-backup-status:/data/status
+      # Linux FS key (chmod 600) — NOT under /mnt/c (Windows perms break OpenSSH)
+      - /opt/secrets/nas/id_nas_ed25519:/run/secrets/nas_ssh_key:ro
+      - ./targets.yaml:/app/targets.yaml:ro
+      - ./server.js:/app/server.js:ro
+      - ./scripts:/app/scripts:ro
+      - ./public:/app/public:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    labels:
+      - "coolify.managed=false"
+      - "apps.directory.enable=true"
+      - "apps.directory.name=apps-db-backup"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:3096/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  apps-db-backup-data:
+  apps-db-backup-status:

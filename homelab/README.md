@@ -1,10 +1,15 @@
+# Homelab ops
+
+Also see **`apps-db-backup/`** — scheduled DB dumps for the `apps` mini-server → Q-NAS Volume_3 (`http://apps:3096`). Source of truth: `C:\workspace\apps-db-backup`. Deploy: `Apps-server/provision/deploy-apps-db-backup.ps1`.
+
+---
+
 # Power Quatermaster (Wake + Sleep)
 
 Webapp déployée sur **apps** pour :
 
 1. **Réveiller** Quatermaster via Wake-on-LAN
 2. **Mettre en veille** Quatermaster via un agent local (port 3089)
-
 ## URLs
 
 | Accès | URL |

@@ -1,0 +1,14 @@
+{
+  "name": "apps-db-backup",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Scheduled database backups for apps mini-server → Q-NAS",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "backup": "bash scripts/backup-all.sh"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
