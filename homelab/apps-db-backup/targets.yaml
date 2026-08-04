@@ -65,4 +65,6 @@ targets:
   # apps-directory — catalog only
   # redis containers — cache, rebuildable
   # ASEP Quiz / Paperless — not running; add when redeployed
-  # Covas / Risu / SillyTavern / Open WebUI — on Quatermaster (separate job later)
+  # Quatermaster AI (Risu/Story, Open WebUI, SillyTavern, Covas):
+  #   → separate agent C:\workspace\quatermaster-backup (port 3097)
+  #   → same NAS root .../apps-backups/quatermaster/

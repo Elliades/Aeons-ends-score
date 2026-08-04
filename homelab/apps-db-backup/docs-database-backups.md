@@ -40,7 +40,19 @@ Current dump footprint is small (~100 MB uncompressed total) — years of rete
 | Redis (all) | `*-redis*` | **skip** (cache) |
 | price-scout / aeons-end / wake-qm | — | **skip** (no local DB) |
 | Paperless / ASEP | — | add when running |
-| Covas / Risu / ST / Open WebUI | Quatermaster | **out of scope** (other host) |
+| RisuAI / Story / Open WebUI / SillyTavern / Covas | Quatermaster | **`quatermaster-backup`** (port 3097) → NAS `…/quatermaster/` |
+
+## Quatermaster AI / Story
+
+Runs on the PC host (not apps). Install:
+
+```powershell
+cd C:\workspace\quatermaster-backup
+.\install.ps1
+.\backup-all.ps1   # first run
+```
+
+Health: http://quatermaster:3097/api/health (Tailscale `100.127.245.112:3097`).
 
 ## Deploy / run
 

@@ -13,7 +13,10 @@ Dedicated backup service for the `apps` mini-server. Dumps every durable databas
 | `homeassistant` | Q-Home | `tar` of `/config` |
 | `art-social-minio` | Art Studio MinIO | `tar` of `/data` |
 
-Skipped on purpose: Redis caches, stateless apps (price-scout, aeons-end tracker), Quatermaster AI stacks (separate host).
+Skipped on purpose: Redis caches, stateless apps (price-scout, aeons-end tracker).
+
+**Quatermaster AI / Story** (Risu, Story content, Open WebUI, SillyTavern, Covas) is backed up by the sibling agent  
+`C:\workspace\quatermaster-backup` (port **3097**) into the same NAS tree under `…/apps-backups/quatermaster/`.
 
 ## Schedule & retention
 

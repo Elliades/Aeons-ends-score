@@ -1,6 +1,7 @@
 # Homelab ops
 
-Also see **`apps-db-backup/`** — scheduled DB dumps for the `apps` mini-server → Q-NAS Volume_3 (`http://apps:3096`). Source of truth: `C:\workspace\apps-db-backup`. Deploy: `Apps-server/provision/deploy-apps-db-backup.ps1`.
+- **`apps-db-backup/`** - Postgres/config dumps on `apps` -> Q-NAS (port 3096). Source: `C:\workspace\apps-db-backup`.
+- **`quatermaster-backup/`** - Risu/Story/Open WebUI/SillyTavern/Covas on this PC -> Q-NAS (port 3097). Source: `C:\workspace\quatermaster-backup`.
 
 ---
 

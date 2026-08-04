@@ -1,0 +1,65 @@
+{
+  "scheduleLocal": "03:30",
+  "keepLocal": 7,
+  "keepRemote": 30,
+  "nas": {
+    "sshHost": "nas-sftp",
+    "remoteRoot": "/mnt/HD/HD_c2/apps-backups/quatermaster"
+  },
+  "targets": [
+    {
+      "id": "risuai",
+      "service": "RisuAI (Story live save)",
+      "priority": "critical",
+      "paths": ["C:\\workspace\\ai-chat\\data\\risuai"],
+      "pauseDocker": ["ai-chat-risuai"],
+      "note": "Primary Story/Risu play state (database.bin + assets)"
+    },
+    {
+      "id": "story-content",
+      "service": "Story (content repo)",
+      "priority": "high",
+      "paths": ["C:\\workspace\\Story"],
+      "exclude": [".git", "node_modules", "__pycache__", ".venv", "memory", "lorebook"],
+      "note": "Authoring content; live state is risuai"
+    },
+    {
+      "id": "openwebui",
+      "service": "Open WebUI",
+      "priority": "high",
+      "paths": [
+        "C:\\workspace\\ai-chat\\data\\openwebui\\webui.db",
+        "C:\\workspace\\ai-chat\\data\\openwebui\\webui.db-wal",
+        "C:\\workspace\\ai-chat\\data\\openwebui\\webui.db-shm",
+        "C:\\workspace\\ai-chat\\data\\openwebui\\uploads",
+        "C:\\workspace\\ai-chat\\data\\openwebui\\vector_db"
+      ],
+      "note": "Skips cache/ (embeddings, redownloadable)"
+    },
+    {
+      "id": "sillytavern",
+      "service": "SillyTavern",
+      "priority": "high",
+      "paths": [
+        "C:\\workspace\\ai-chat\\apps\\sillytavern\\data",
+        "C:\\workspace\\ai-chat\\apps\\sillytavern\\config.yaml"
+      ],
+      "note": "Characters, chats, worlds — not the app tree"
+    },
+    {
+      "id": "covas",
+      "service": "Covas Trade Intel",
+      "priority": "high",
+      "paths": [
+        "C:\\Users\\Quatermaster\\AppData\\Roaming\\com.covas-next.ui\\covas.db",
+        "C:\\Users\\Quatermaster\\AppData\\Roaming\\com.covas-next.ui\\covas.db-wal",
+        "C:\\Users\\Quatermaster\\AppData\\Roaming\\com.covas-next.ui\\covas.db-shm",
+        "C:\\Users\\Quatermaster\\AppData\\Roaming\\com.covas-next.ui\\trade-intel.db",
+        "C:\\Users\\Quatermaster\\AppData\\Roaming\\com.covas-next.ui\\covas-upgrade-memory.db",
+        "C:\\Users\\Quatermaster\\AppData\\Roaming\\com.covas-next.ui\\config.json",
+        "C:\\Users\\Quatermaster\\AppData\\Roaming\\com.covas-next.ui\\plugins"
+      ],
+      "note": "Skips Electron Cache/GPUCache"
+    }
+  ]
+}
