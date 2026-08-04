@@ -1,0 +1,70 @@
+# Backup targets discovered from https://services.chaos-art.fr / apps-directory.
+# Credentials are read live from each container's POSTGRES_* env (never stored here).
+
+schedule: "0 3 * * *"   # daily 03:00 (container local time = host)
+keepLocal: 14           # days of local staging on apps
+keepRemote: 30          # days retained on NAS
+
+nas:
+  host: "192.168.1.189"
+  port: 2222
+  user: admin
+  remoteRoot: /mnt/HD/HD_c2/apps-backups
+  # Volume_3 — ~848 GiB free (2026-08-04). Volume_1 is full; Volume_2/4 also usable.
+
+targets:
+  # --- Postgres (apps) ---
+  - id: art-social-manager
+    service: Art Studio Publisher
+    type: postgres
+    container: art-social-manager-postgres-1
+    priority: critical
+    note: OAuth tokens + platform config
+
+  - id: drinkanddraw
+    service: Drink and Draw 3
+    type: postgres
+    container: drinkanddraw-db
+    priority: critical
+    note: Pose sessions + user data
+
+  - id: anti-doom-scroll
+    service: anti-doom-scroll
+    type: postgres
+    container: anti-doom-scroll-db-1
+    priority: high
+
+  - id: bmw-charging
+    service: BMW Charging API
+    type: postgres
+    container: bmw-charging-postgres
+    priority: high
+    note: TimescaleDB — plain pg_dump is fine
+
+  # --- Config / file state (no classic RDBMS) ---
+  - id: homeassistant
+    service: Q-Home / Home Assistant
+    type: docker-tar
+    container: homeassistant
+    path: /config
+    priority: critical
+    note: SQLite + YAML automations
+
+  - id: art-social-minio
+    service: Art Studio Publisher (MinIO)
+    type: docker-tar
+    container: art-social-manager-minio-1
+    path: /data
+    priority: high
+    note: Uploaded artworks bucket
+
+  # --- Skipped (no durable DB / ephemeral) ---
+  # aeons-end-tracker — Firebase / no local Postgres
+  # price-scout-mcp — stateless MCP
+  # wake-quartermaster — no database check
+  # apps-directory — catalog only
+  # redis containers — cache, rebuildable
+  # ASEP Quiz / Paperless — not running; add when redeployed
+  # Quatermaster AI (Risu/Story, Open WebUI, SillyTavern, Covas):
+  #   → separate agent C:\workspace\quatermaster-backup (port 3097)
+  #   → same NAS root .../apps-backups/quatermaster/
